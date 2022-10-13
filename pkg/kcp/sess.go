@@ -123,7 +123,7 @@ type (
 )
 
 // newUDPSession create a new udp session for client or server
-func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn net.PacketConn, ownConn bool, remote net.Addr, block BlockCrypt) *UDPSession {
+func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn net.PacketConn, ownConn bool, local, remote net.Addr, block BlockCrypt) *UDPSession {
 	sess := new(UDPSession)
 	sess.die = make(chan struct{})
 	sess.nonce = new(nonceAES128)
@@ -141,7 +141,10 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 
 	// cast to writebatch conn
 	if _, ok := conn.(*net.UDPConn); ok {
-		addr, err := net.ResolveUDPAddr("udp", conn.LocalAddr().String())
+		if local == nil {
+			local = conn.LocalAddr()
+		}
+		addr, err := net.ResolveUDPAddr("udp", local.String())
 		if err == nil {
 			if addr.IP.To4() != nil {
 				sess.xconn = ipv4.NewPacketConn(conn)
@@ -838,7 +841,7 @@ func (l *Listener) packetInput(data []byte, addr net.Addr) {
 
 		if s == nil && convRecovered { // new session
 			if len(l.chAccepts) < cap(l.chAccepts) { // do not let the new sessions overwhelm accept queue
-				s := newUDPSession(conv, l.dataShards, l.parityShards, l, l.conn, false, addr, l.block)
+				s := newUDPSession(conv, l.dataShards, l.parityShards, l, l.conn, false, nil, addr, l.block)
 				s.kcpInput(data)
 				l.sessionLock.Lock()
 				l.sessions[addr.String()] = s
@@ -1025,6 +1028,10 @@ func serveConn(block BlockCrypt, dataShards, parityShards int, conn net.PacketCo
 // Dial connects to the remote address "raddr" on the network "udp" without encryption and FEC
 func Dial(raddr string) (net.Conn, error) { return DialWithOptions(raddr, nil, 0, 0) }
 
+func DialUDP(network string, laddr, raddr *net.UDPAddr) (net.Conn, error) {
+	return DialUDPWithOptions(network, laddr, raddr, nil, 0, 0)
+}
+
 // DialWithOptions connects to the remote address "raddr" on the network "udp" with packet encryption
 //
 // 'block' is the block encryption algorithm to encrypt packets.
@@ -1050,12 +1057,23 @@ func DialWithOptions(raddr string, block BlockCrypt, dataShards, parityShards in
 
 	var convid uint32
 	binary.Read(rand.Reader, binary.LittleEndian, &convid)
-	return newUDPSession(convid, dataShards, parityShards, nil, conn, true, udpaddr, block), nil
+	return newUDPSession(convid, dataShards, parityShards, nil, conn, true, nil, udpaddr, block), nil
+}
+
+func DialUDPWithOptions(network string, laddr, raddr *net.UDPAddr, block BlockCrypt, dataShards, parityShards int) (*UDPSession, error) {
+	conn, err := net.ListenUDP(network, laddr)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	var convid uint32
+	binary.Read(rand.Reader, binary.LittleEndian, &convid)
+	return newUDPSession(convid, dataShards, parityShards, nil, conn, true, laddr, raddr, block), nil
 }
 
 // NewConn3 establishes a session and talks KCP protocol over a packet connection.
 func NewConn3(convid uint32, raddr net.Addr, block BlockCrypt, dataShards, parityShards int, conn net.PacketConn) (*UDPSession, error) {
-	return newUDPSession(convid, dataShards, parityShards, nil, conn, false, raddr, block), nil
+	return newUDPSession(convid, dataShards, parityShards, nil, conn, false, nil, raddr, block), nil
 }
 
 // NewConn2 establishes a session and talks KCP protocol over a packet connection.
