@@ -16,6 +16,8 @@ func init() {
 
 func main() {
 	cfg := config.ClientConf{
+		ServerAddr:      "",
+		ServerPort:      2022,
 		LogFile:         "console",
 		LogWay:          "console",
 		LogLevel:        "trace",
