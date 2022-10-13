@@ -16,15 +16,16 @@ func init() {
 
 func main() {
 	cfg := config.ClientConf{
-		ServerAddr:      "",
-		ServerPort:      2022,
+		ServerAddr:      "hongkong.yandage.top",
+		ServerPort:      67,
 		LogFile:         "console",
 		LogWay:          "console",
-		LogLevel:        "trace",
+		LogLevel:        "debug",
 		LogMaxDays:      3,
 		DisableLogColor: false,
 	}
 	log.InitLog(cfg.LogWay, cfg.LogFile, cfg.LogLevel, cfg.LogMaxDays, cfg.DisableLogColor)
+	log.Debug(fmt.Sprint("Log laval: ", cfg.LogLevel))
 
 	svr, err := client.NewService(cfg)
 	if err != nil {

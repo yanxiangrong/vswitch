@@ -16,9 +16,10 @@ func init() {
 
 func main() {
 	cfg := config.ServerConf{
+		BindPort:        67,
 		LogFile:         "console",
 		LogWay:          "console",
-		LogLevel:        "trace",
+		LogLevel:        "debug",
 		LogMaxDays:      3,
 		DisableLogColor: false,
 	}

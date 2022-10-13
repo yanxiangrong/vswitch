@@ -11,6 +11,7 @@ import (
 	"vswitch/client/netcard"
 	"vswitch/pkg/common"
 	"vswitch/pkg/config"
+	"vswitch/pkg/kcp"
 	"vswitch/pkg/pkgbuf"
 	"vswitch/pkg/util/log"
 	"vswitch/pkg/util/util"
@@ -21,13 +22,11 @@ type Service struct {
 	conn    net.Conn
 	reconMu *sync.Mutex
 	connMu  *sync.Mutex
-	lAddr   *net.TCPAddr
-	rAddr   *net.TCPAddr
+	lAddr   *net.UDPAddr
+	rAddr   *net.UDPAddr
 }
 
 func NewService(cfg config.ClientConf) (svr *Service, err error) {
-	serverAddr := "172.16.1.12:8080"
-
 	svr = &Service{}
 	localAddr := netcard.SelectByUser()
 	str := ""
@@ -36,13 +35,13 @@ func NewService(cfg config.ClientConf) (svr *Service, err error) {
 	} else if util.IsIPv6(localAddr) {
 		str = fmt.Sprintf("[%s]:0", localAddr)
 	}
-	svr.lAddr, err = net.ResolveTCPAddr("tcp", str)
+	svr.lAddr, err = net.ResolveUDPAddr("udp", str)
 	if err != nil {
 		log.Error(fmt.Sprint(err))
 		os.Exit(-1)
 	}
 
-	svr.rAddr, err = net.ResolveTCPAddr("tcp", serverAddr)
+	svr.rAddr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", cfg.ServerAddr, cfg.ServerPort))
 	if err != nil {
 		log.Error(fmt.Sprint(err))
 		os.Exit(-1)
@@ -133,7 +132,8 @@ func (svr *Service) connectServer() {
 	log.Info(fmt.Sprint("Connect to remote addr:", svr.rAddr))
 	for {
 		var err error
-		svr.conn, err = net.DialTCP("tcp", svr.lAddr, svr.rAddr)
+
+		svr.conn, err = kcp.DialUDP("udp", svr.lAddr, svr.rAddr)
 		if err != nil {
 			log.Warn(fmt.Sprint(err))
 			log.Info("Reconnect in about 10 seconds")

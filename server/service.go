@@ -6,6 +6,7 @@ import (
 	"os"
 	"vswitch/pkg/common"
 	"vswitch/pkg/config"
+	"vswitch/pkg/kcp"
 	"vswitch/pkg/pkgbuf"
 	"vswitch/pkg/util/log"
 	"vswitch/pkg/virtualswitch"
@@ -24,7 +25,7 @@ func NewService(cfg config.ServerConf) (svr *Service, err error) {
 		vSwitch: virtualswitch.New(),
 	}
 
-	svr.listener, err = net.Listen("tcp", ":8080")
+	svr.listener, err = kcp.Listen(fmt.Sprintf(":%d", cfg.BindPort))
 	if err != nil {
 		return
 	}
@@ -76,6 +77,7 @@ func (svr *Service) handleConnection(conn net.Conn) {
 		if err != nil {
 			log.Warn(fmt.Sprint(err))
 		}
+		return
 	}
 
 	defer svr.vSwitch.Unplug(port)

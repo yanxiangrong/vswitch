@@ -1,6 +1,12 @@
 package config
 
 type ClientConf struct {
+	// ServerAddr specifies the address of the server to connect to. By
+	// default, this value is "0.0.0.0".
+	ServerAddr string `ini:"server_addr" json:"server_addr"`
+	// ServerPort specifies the port to connect to the server on. By default,
+	// this value is 7000.
+	ServerPort int `ini:"server_port" json:"server_port"`
 	// LogFile specifies a file where logs will be written to. This value will
 	// only be used if LogWay is set appropriately. By default, this value is
 	// "console".
