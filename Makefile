@@ -4,17 +4,26 @@ export GOPROXY=https://goproxy.cn,direct
 
 all: fmt build
 
+
 build: vswitchs vswitchc
+
+# 交叉编译
+cross-build: cross-linux vswitchs vswitchc
+
+cross-linux:
+	env CGO_ENABLED=0
+	env GOOS=linux
+	env GOARCH=amd64
 
 fmt:
 	go fmt ./...
 
 vswitchs:
-	env go build -o bin/vswitchs ./cmd/vswitchs
+	go build -o ./out/vswitchs ./cmd/vswitchs
 
 vswitchc:
-	env go build -o bin/vswitchc ./cmd/vswitchc
+	go build -o ./out/vswitchc ./cmd/vswitchc
 
 clean:
-	rm -f ./bin/vswitchs
-	rm -f ./bin/vswitchc
+	rm -f ./out/vswitchs
+	rm -f ./out/vswitchc
